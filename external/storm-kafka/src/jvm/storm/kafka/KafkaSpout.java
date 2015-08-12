@@ -46,7 +46,8 @@ public class KafkaSpout extends BaseRichSpout {
     static enum EmitState {
         EMITTED_MORE_LEFT,
         EMITTED_END,
-        NO_EMITTED
+        NO_EMITTED,
+        MORE_LEFT_CIELED_BY_PARENT
     }
 
     public static final Logger LOG = LoggerFactory.getLogger(KafkaSpout.class);
@@ -63,6 +64,10 @@ public class KafkaSpout extends BaseRichSpout {
     int _currPartitionIndex = 0;
 
     public KafkaSpout(SpoutConfig spoutConf) {
+        _spoutConfig = spoutConf;
+    }
+    
+    public KafkaSpout(DependentConsumerSpoutConfig spoutConf) {
         _spoutConfig = spoutConf;
     }
 
@@ -142,7 +147,8 @@ public class KafkaSpout extends BaseRichSpout {
                 if (state != EmitState.EMITTED_MORE_LEFT) {
                     _currPartitionIndex = (_currPartitionIndex + 1) % managers.size();
                 }
-                if (state != EmitState.NO_EMITTED) {
+                //considering MORE_LEFT_CIELED_BY_PARENT equivalent to No Emitted. So Next partition will get a chance to fetch in nextTuple
+                if (state != EmitState.NO_EMITTED ||state != EmitState.MORE_LEFT_CIELED_BY_PARENT) {
                     break;
                 }
             } catch (FailedFetchException e) {

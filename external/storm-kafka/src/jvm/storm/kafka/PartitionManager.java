@@ -37,12 +37,27 @@ import storm.kafka.trident.MaxMetric;
 
 import java.util.*;
 
+/**
+ * Approach to support dependent consumers
+ * 
+ * Keep reference of dependent consumer Partition ZK location here.
+ * 
+ * Idea
+ * _emittedToOffset < depConsumer[partition].commitedOffset
+ * 
+ * New EmitState -> EMITTED_AWAITING_DEP_CONSUMER
+ * 
+ * 
+ * @author anshul.gupta
+ *
+ */
 public class PartitionManager {
     public static final Logger LOG = LoggerFactory.getLogger(PartitionManager.class);
     private final CombinedMetric _fetchAPILatencyMax;
     private final ReducedMetric _fetchAPILatencyMean;
     private final CountMetric _fetchAPICallCount;
     private final CountMetric _fetchAPIMessageCount;
+    
     Long _emittedToOffset;
     SortedSet<Long> _pending = new TreeSet<Long>();
     SortedSet<Long> failed = new TreeSet<Long>();
@@ -54,6 +69,7 @@ public class PartitionManager {
     SimpleConsumer _consumer;
     DynamicPartitionConnections _connections;
     ZkState _state;
+    ZkState _dependenConsumerState = null;
     Map _stormConf;
     long numberFailed, numberAcked;
     public PartitionManager(DynamicPartitionConnections connections, String topologyInstanceId, ZkState state, Map stormConf, SpoutConfig spoutConfig, Partition id) {
@@ -107,6 +123,7 @@ public class PartitionManager {
         _fetchAPILatencyMean = new ReducedMetric(new MeanReducer());
         _fetchAPICallCount = new CountMetric();
         _fetchAPIMessageCount = new CountMetric();
+        
     }
 
     public Map getMetricsDataMap() {
@@ -128,6 +145,11 @@ public class PartitionManager {
             if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
+            //validate if tuple can be emitted
+            if(!isBehindDependentConsumer(toEmit)) {
+            	return EmitState.MORE_LEFT_CIELED_BY_PARENT;
+            }
+            
             Iterable<List<Object>> tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg);
             if (tups != null) {
                 for (List<Object> tup : tups) {
@@ -145,7 +167,16 @@ public class PartitionManager {
         }
     }
 
-    private void fill() {
+    /**
+     * For non dependent consumer, implementation will always return true signifying no dependent consumer check is needed 
+     * @param toEmit
+     * @return
+     */
+    protected boolean isBehindDependentConsumer(MessageAndRealOffset toEmit) {
+		return true;
+	}
+
+	private void fill() {
         long start = System.nanoTime();
         long offset;
         final boolean had_failed = !failed.isEmpty();
@@ -244,7 +275,7 @@ public class PartitionManager {
     private String committedPath() {
         return _spoutConfig.zkRoot + "/" + _spoutConfig.id + "/" + _partition.getId();
     }
-
+    
     public long lastCompletedOffset() {
         if (_pending.isEmpty()) {
             return _emittedToOffset;
