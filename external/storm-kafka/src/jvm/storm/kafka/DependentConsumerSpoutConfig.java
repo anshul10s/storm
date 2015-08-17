@@ -19,7 +19,7 @@ import org.joda.time.Period;
  */
 public class DependentConsumerSpoutConfig extends SpoutConfig {
 
-	String dependConsumerZkRoot;
+//	String dependConsumerZkRoot;
 	String depConsumerId; ///Module name of depConsumer
 	int updateFrequency = Period.seconds(2).getMillis();
 	

@@ -3,12 +3,16 @@ package storm.kafka;
 import java.io.Serializable;
 import java.util.Map;
 
-import backtype.storm.metric.api.CountMetric;
-import jline.internal.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import storm.kafka.KafkaSpout.MessageAndRealOffset;
+import backtype.storm.metric.api.CountMetric;
 
 public class DepdendentConsumetPartitionManager extends PartitionManager {
 
+	public static final Logger LOG = LoggerFactory.getLogger(DepdendentConsumetPartitionManager.class);
+	
 	private DependentConsumerSpoutConfig _dependentConsumerSpoutConfig;
 	private CachedOffset dependentOffsetCached;
 	private final CountMetric _fetchBlockedByDepedentCounter;
@@ -19,7 +23,7 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
 		super(connections, topologyInstanceId, state, stormConf, dependentConsumerSpoutConfig, id);
 		this._dependentConsumerSpoutConfig = dependentConsumerSpoutConfig;
 		dependentOffsetCached = fetchOffset();
-        Log.info("Depndent offset -{} for topologyInstanceId - {}", dependentOffsetCached, topologyInstanceId);
+        LOG.info("Dependent offset -{} for topologyInstanceId - {}", dependentOffsetCached, topologyInstanceId);
         
         _fetchBlockedByDepedentCounter =  new CountMetric();
 	}
@@ -30,7 +34,7 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
         String path = dependetConsumerCommitPath();
         try {
             Map<Object, Object> json = _state.readJSON(path);
-            LOG.info("Read partition information from: " + path +  "  --> " + json );
+            LOG.info("Dependent Read partition information from: " + path +  "  --> " + json );
             if (json != null) {
                return new CachedOffset((Long) json.get("offset"));
             }
@@ -59,12 +63,14 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
 
 	@Override
 	protected boolean isBehindDependentConsumer(MessageAndRealOffset toEmit) {
+		boolean result = false;
 		long currentOffset = toEmit.offset;
 		if(currentOffset < dependentOffsetCached.getOffset())
-			return true;
+			result = true;
 		
 		_fetchBlockedByDepedentCounter.incr();
-		return false;
+		LOG.info("isBehindDependentConsumer: " + toEmit.offset +  " Result --> " + result );
+		return result;
 	}
 
 	
