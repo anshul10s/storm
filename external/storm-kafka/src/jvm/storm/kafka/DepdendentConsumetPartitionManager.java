@@ -3,6 +3,8 @@ package storm.kafka;
 import java.io.Serializable;
 import java.util.Map;
 
+import jline.internal.Log;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +40,8 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
             if (json != null) {
                return new CachedOffset((Long) json.get("offset"));
             }
-            throw new RuntimeException(String.format("Dependenct Consumer - %s, offset json null from ZK", _dependentConsumerSpoutConfig.depConsumerId));
+            Log.error("Dependenct Consumer - {}, offset json null from ZK. Partition Id - {}", _dependentConsumerSpoutConfig.depConsumerId, _partition.getId());
+            return new CachedOffset(0l);
         } catch (Throwable e) {
             LOG.error("Error reading and/or parsing at ZkNode: " + path, e);
             throw new RuntimeException(String.format("Dependenct Consumer - %s, offset cannot be found from ZK", _dependentConsumerSpoutConfig.depConsumerId), e);
@@ -69,7 +72,7 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
 			result = true;
 		
 		_fetchBlockedByDepedentCounter.incr();
-		LOG.info("isBehindDependentConsumer: " + toEmit.offset +  " Result --> " + result );
+		LOG.debug("isBehindDependentConsumer: Current Offset - {}, Dependent Parent Offest - {}. Parition Id - {}. Result - {}" , toEmit.offset , dependentOffsetCached.getOffset(), _partition.getId(), result );
 		return result;
 	}
 
