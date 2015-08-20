@@ -68,7 +68,7 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
 	protected boolean isBehindDependentConsumer(MessageAndRealOffset toEmit) {
 		boolean result = false;
 		long currentOffset = toEmit.offset;
-		if(currentOffset < dependentOffsetCached.getOffset())
+		if(currentOffset < this.getAndRefreshDependentOffset())
 			result = true;
 		
 		_fetchBlockedByDepedentCounter.incr();
