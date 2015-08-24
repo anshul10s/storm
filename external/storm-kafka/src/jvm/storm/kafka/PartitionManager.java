@@ -141,14 +141,23 @@ public class PartitionManager {
             fill();
         }
         while (true) {
+        	
+        	
+        	MessageAndRealOffset toEmitPeek = _waitingToEmit.peekFirst();
+            if (toEmitPeek == null) {
+                return EmitState.NO_EMITTED;
+            }
+        
+            //validate if tuple can be emitted
+            if(!isBehindDependentConsumer(toEmitPeek)) {
+            	return EmitState.MORE_LEFT_CIELED_BY_PARENT;
+            }
+            
             MessageAndRealOffset toEmit = _waitingToEmit.pollFirst();
             if (toEmit == null) {
                 return EmitState.NO_EMITTED;
             }
-            //validate if tuple can be emitted
-            if(!isBehindDependentConsumer(toEmit)) {
-            	return EmitState.MORE_LEFT_CIELED_BY_PARENT;
-            }
+        
             
             Iterable<List<Object>> tups = KafkaUtils.generateTuples(_spoutConfig, toEmit.msg);
             if (tups != null) {

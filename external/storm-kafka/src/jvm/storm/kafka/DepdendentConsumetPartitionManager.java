@@ -71,8 +71,13 @@ public class DepdendentConsumetPartitionManager extends PartitionManager {
 		if(currentOffset < this.getAndRefreshDependentOffset())
 			result = true;
 		
-		_fetchBlockedByDepedentCounter.incr();
-		LOG.debug("isBehindDependentConsumer: Current Offset - {}, Dependent Parent Offest - {}. Parition Id - {}. Result - {}" , toEmit.offset , dependentOffsetCached.getOffset(), _partition.getId(), result );
+		if(!result) {
+			_fetchBlockedByDepedentCounter.incr();
+		}
+		
+		//Adding logs only when blocked or debug explicitly enabled
+		if(!result || LOG.isDebugEnabled())
+			LOG.info("isBehindDependentConsumer: Current Offset - {}, Dependent Parent Offest - {}. Parition Id - {}. Result - {}" , toEmit.offset , dependentOffsetCached.getOffset(), _partition.getId(), result );
 		return result;
 	}
 

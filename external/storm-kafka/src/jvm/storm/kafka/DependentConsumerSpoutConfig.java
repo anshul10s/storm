@@ -21,7 +21,7 @@ public class DependentConsumerSpoutConfig extends SpoutConfig {
 
 //	String dependConsumerZkRoot;
 	String depConsumerId; ///Module name of depConsumer
-	int updateFrequency = Period.seconds(2).getMillis();
+	int updateFrequency = 2*1000; //milliseconds
 	
 	public DependentConsumerSpoutConfig(BrokerHosts hosts, String topic,
 			String zkRoot, String id, String depConsumerId) {
